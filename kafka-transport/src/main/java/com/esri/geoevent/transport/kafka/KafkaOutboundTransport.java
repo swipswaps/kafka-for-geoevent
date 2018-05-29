@@ -37,22 +37,21 @@ import com.esri.ges.transport.GeoEventAwareTransport;
 import com.esri.ges.transport.OutboundTransportBase;
 import com.esri.ges.transport.TransportDefinition;
 import com.esri.ges.util.Converter;
-import kafka.admin.AdminUtils;
-import kafka.admin.RackAwareMode;
-import kafka.utils.ZKStringSerializer$;
-import kafka.utils.ZkUtils;
-import org.I0Itec.zkclient.ZkClient;
-import org.I0Itec.zkclient.ZkConnection;
+import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.AdminClientConfig;
+import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.producer.*;
 
 import java.nio.ByteBuffer;
+import java.util.Collections;
+import java.util.Optional;
 import java.util.Properties;
+import java.util.concurrent.ExecutionException;
 
 class KafkaOutboundTransport extends OutboundTransportBase implements GeoEventAwareTransport {
   private static final BundleLogger LOGGER	= BundleLoggerFactory.getLogger(KafkaOutboundTransport.class);
   private KafkaEventProducer producer;
-  private String zkConnect = "localhost:2181";
-  private String bootstrap = "localhost:9092";
+  private String bootstrapServers = "localhost:9092";
   private String topic;
   private int partitions;
   private int replicas;
@@ -72,7 +71,7 @@ class KafkaOutboundTransport extends OutboundTransportBase implements GeoEventAw
       if (geoEvent != null)
       {
         if (producer == null)
-          producer = new KafkaEventProducer(new EventDestination(topic), bootstrap);
+          producer = new KafkaEventProducer(new EventDestination(topic), bootstrapServers);
         producer.send(byteBuffer, geoEvent.hashCode());
       }
     }
@@ -104,8 +103,7 @@ class KafkaOutboundTransport extends OutboundTransportBase implements GeoEventAw
   public void afterPropertiesSet() {
     super.afterPropertiesSet();
     shutdownProducer();
-    zkConnect = getProperty("zkConnect").getValueAsString();
-    bootstrap = getProperty("bootstrap").getValueAsString();
+    bootstrapServers = getProperty("bootstrapServers").getValueAsString();
     topic = getProperty("topic").getValueAsString();
     partitions = Converter.convertToInteger(getProperty("partitions").getValueAsString(), 1);
     replicas = Converter.convertToInteger(getProperty("replicas").getValueAsString(), 0);
@@ -114,33 +112,33 @@ class KafkaOutboundTransport extends OutboundTransportBase implements GeoEventAw
   @Override
   public void validate() throws ValidationException {
     super.validate();
-    if (zkConnect == null || zkConnect.isEmpty())
-      throw new ValidationException(LOGGER.translate("ZKCONNECT_VALIDATE_ERROR"));
-    if (bootstrap == null || bootstrap.isEmpty())
-      throw new ValidationException(LOGGER.translate("BOOTSTRAP_VALIDATE_ERROR"));
+    if (bootstrapServers == null || bootstrapServers.isEmpty())
+      throw new ValidationException(LOGGER.translate("BOOTSTRAP_SERVERS_VALIDATE_ERROR"));
     if (topic == null || topic.isEmpty())
       throw new ValidationException(LOGGER.translate("TOPIC_VALIDATE_ERROR"));
-    ZkClient zkClient = new ZkClient(zkConnect, 10000, 8000, ZKStringSerializer$.MODULE$);
     // Security for Kafka was added in Kafka 0.9.0.0 -> isSecureKafkaCluster = false
-    ZkUtils zkUtils = new ZkUtils(zkClient, new ZkConnection(zkConnect), false);
-    if (AdminUtils.topicExists(zkUtils, topic))
-      zkClient.deleteRecursive(ZkUtils.getTopicPath(topic));
+    final Properties adminProps = new Properties();
+    adminProps.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+    final AdminClient adminClient = AdminClient.create(adminProps);
+    try {
+      final Optional<String> topicOption = adminClient.listTopics().names().get().stream().findAny();
+      if (topicOption.isPresent())
+        adminClient.deleteTopics(Collections.singletonList(topic)).all().get();
 
-    ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-    try
-    {
-
-      Thread.currentThread().setContextClassLoader(null);
-      AdminUtils.createTopic(zkUtils, topic, partitions, replicas, new Properties(), RackAwareMode.Disabled$.MODULE$);
+      ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+      try {
+        Thread.currentThread().setContextClassLoader(null);
+        adminClient.createTopics(Collections.singletonList(new NewTopic(topic, partitions, (short) replicas))).all().get();
+      } catch (Throwable th) {
+        LOGGER.error(th.getMessage(), th);
+        throw new ValidationException(th.getMessage());
+      } finally {
+        Thread.currentThread().setContextClassLoader(classLoader);
+      }
+      adminClient.close();
+    } catch (InterruptedException | ExecutionException e) {
+      throw new IllegalStateException("Error checking kafka topic", e);
     }
-    catch (Throwable th) {
-      LOGGER.error(th.getMessage(), th);
-      throw new ValidationException(th.getMessage());
-    }
-    finally {
-      Thread.currentThread().setContextClassLoader(classLoader);
-    }
-    zkClient.close();
   }
 
   private synchronized void disconnect(String reason) {

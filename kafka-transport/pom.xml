@@ -38,10 +38,14 @@
 						<Bundle-Version>${project.version}</Bundle-Version>
 						<AGES-Domain>com.esri.geoevent.transport</AGES-Domain>
 						<Export-Package/>
-						<Import-Package>!kafka.*,*</Import-Package>
+						<Import-Package>!org.apache.kafka.*,*</Import-Package>
 						<Private-Package>com.esri.geoevent.transport.kafka</Private-Package>
 					</instructions>
 				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
 			</plugin>
 		</plugins>
 	</build>
