@@ -7,7 +7,7 @@
 		<version>10.6.0</version>
 	</parent>
 	<groupId>com.esri.geoevent.transport</groupId>
-	<artifactId>kafka-transport</artifactId>
+	<artifactId>kafka-new_transport</artifactId>
 	<name>Esri :: GeoEvent :: Transport :: Kafka</name>
 	<packaging>bundle</packaging>
 	<dependencies>
@@ -36,7 +36,7 @@
 						<Bundle-SymbolicName>${project.groupId}.${project.artifactId}</Bundle-SymbolicName>
 						<Bundle-ContactAddress>${contact.address}</Bundle-ContactAddress>
 						<Bundle-Version>${project.version}</Bundle-Version>
-						<AGES-Domain>com.esri.geoevent.transport</AGES-Domain>
+						<AGES-Domain>com.esri.geoevent.new_transport</AGES-Domain>
 						<Export-Package/>
 						<Import-Package>!org.apache.kafka.*,*</Import-Package>
 						<Private-Package>com.esri.geoevent.transport.kafka</Private-Package>
