@@ -6,7 +6,7 @@
     <geoEventDefinitions/>
     <tags/>
     <connectors>
-        <connector accessType="editable" label="Publish Text to Apache Kafka" name="new-kafka-text-out" type="outbound">
+            <connector accessType="editable" label="Publish Text to Apache Kafka" name="new-kafka-text-out" type="outbound">
             <adapter uri="com.esri.ges.adapter.outbound/Text/10.6.0"/>
             <defaultName>new-kafka-text-out</defaultName>
             <description>Publishes GeoEvents as text to Apache Kafka.</description>
