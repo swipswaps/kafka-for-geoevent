@@ -6,9 +6,9 @@
     <geoEventDefinitions/>
     <tags/>
     <connectors>
-        <connector accessType="editable" label="Publish Text to Apache Kafka" name="kafka-text-out" type="outbound">
+        <connector accessType="editable" label="Publish Text to Apache Kafka" name="new-kafka-text-out" type="outbound">
             <adapter uri="com.esri.ges.adapter.outbound/Text/10.6.0"/>
-            <defaultName>kafka-text-out</defaultName>
+            <defaultName>new-kafka-text-out</defaultName>
             <description>Publishes GeoEvents as text to Apache Kafka.</description>
             <properties>
                 <advanced>
@@ -23,16 +23,15 @@
                 </advanced>
                 <hidden/>
                 <shown>
-                    <property default="localhost:2181" label="Zookeeper Connection String" name="zkConnect" source="transport"/>
-                    <property default="localhost:9092" label="Bootstrap Servers" name="bootstrap" source="transport"/>
+                    <property default="localhost:9092" label="Bootstrap Servers" name="bootstrapServers" source="transport"/>
                     <property label="Topic Name" name="topic" source="transport"/>
                 </shown>
             </properties>
             <transport uri="com.esri.geoevent.transport.outbound/Kafka/10.6.0"/>
         </connector>
-        <connector accessType="editable" label="Receive Text from Apache Kafka" name="kafka-text-in" type="inbound">
+        <connector accessType="editable" label="Receive Text from Apache Kafka" name="new-kafka-text-in" type="inbound">
             <adapter uri="com.esri.ges.adapter.inbound/Text/10.6.0"/>
-            <defaultName>kafka-text-in</defaultName>
+            <defaultName>new-kafka-text-in</defaultName>
             <description>Receives text from Apache Kafka and converts it to GeoEvents.</description>
             <properties>
                 <advanced>
@@ -55,7 +54,7 @@
                 </advanced>
                 <hidden/>
                 <shown>
-                    <property default="localhost:2181" label="Zookeeper Connection String" name="zkConnect" source="transport"/>
+                    <property default="localhost:9092" label="Bootstrap Servers" name="bootstrapServers" source="transport"/>
                     <property label="Topic Name" name="topic" source="transport"/>
                     <property label="Consumer Group Id" name="groupId" source="transport"/>
                 </shown>
