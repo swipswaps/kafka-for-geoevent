@@ -41,6 +41,7 @@ import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.producer.*;
+import org.apache.kafka.common.serialization.ByteArraySerializer;
 
 import java.nio.ByteBuffer;
 import java.util.Collections;
@@ -171,12 +172,12 @@ class KafkaOutboundTransport extends OutboundTransportBase implements GeoEventAw
   private class KafkaEventProducer extends KafkaComponentBase {
     private KafkaProducer<byte[], byte[]> producer;
 
-    KafkaEventProducer(EventDestination destination, String bootstrap) {
+    KafkaEventProducer(EventDestination destination, String bootstrapServers) {
       super(destination);
       // http://kafka.apache.org/documentation.html#producerconfigs
-      props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrap);
-      props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.ByteArraySerializer");
-      props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.ByteArraySerializer");
+      props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+      props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class);
+      props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class);
       props.put(ProducerConfig.CLIENT_ID_CONFIG, "kafka-for-geoevent");
       // props.put("partitioner.class", "kafka.producer.DefaultPartitioner");
       // props.put(ProducerConfig.ACKS_CONFIG, "0");
