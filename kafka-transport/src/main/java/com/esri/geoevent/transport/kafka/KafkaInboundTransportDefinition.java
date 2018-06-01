@@ -40,7 +40,7 @@ public class KafkaInboundTransportDefinition extends TransportDefinitionBase {
     super(TransportType.INBOUND);
     try
     {
-      propertyDefinitions.put("bootstrapServers", new PropertyDefinition("bootstrap", PropertyType.String, "localhost:9092", "${com.esri.geoevent.transport.kafka-transport.BOOTSTRAP_SERVERS_LBL}", "${com.esri.geoevent.transport.kafka-transport.BOOTSTRAP_SERVERS_DESC}", true, false));
+      propertyDefinitions.put("bootstrapServers", new PropertyDefinition("bootstrapServers", PropertyType.String, "localhost:9092", "${com.esri.geoevent.transport.kafka-transport.BOOTSTRAP_SERVERS_LBL}", "${com.esri.geoevent.transport.kafka-transport.BOOTSTRAP_SERVERS_DESC}", true, false));
       propertyDefinitions.put("numThreads", new PropertyDefinition("numThreads", PropertyType.Integer, "1", "${com.esri.geoevent.transport.kafka-transport.NUM_THREADS_LBL}", "${com.esri.geoevent.transport.kafka-transport.NUM_THREADS_DESC}", true, false));
       propertyDefinitions.put("topic", new PropertyDefinition("topic", PropertyType.String, "", "${com.esri.geoevent.transport.kafka-transport.TOPIC_LBL}", "${com.esri.geoevent.transport.kafka-transport.TOPIC_DESC}", true, false));
       propertyDefinitions.put("groupId", new PropertyDefinition("groupId", PropertyType.String, "", "${com.esri.geoevent.transport.kafka-transport.GROUOP_ID_LBL}", "${com.esri.geoevent.transport.kafka-transport.GROUOP_ID_DESC}", true, false));

@@ -109,11 +109,6 @@ class KafkaInboundTransport extends InboundTransportBase implements Runnable {
       throw new ValidationException(LOGGER.translate("GROUP_ID_VALIDATE_ERROR"));
     if (numThreads < 1)
       throw new ValidationException(LOGGER.translate("NUM_THREADS_VALIDATE_ERROR"));
-//    ZkClient zkClient = new ZkClient(zkConnect, 10000, 8000, ZKStringSerializer$.MODULE$);
-    // Security for Kafka was added in Kafka 0.9.0.0 -> isSecureKafkaCluster = false
-//    ZkUtils zkUtils = new ZkUtils(zkClient, new ZkConnection(zkConnect), false);
-//    Boolean topicExists = AdminUtils.topicExists(zkUtils, topic);
-//    zkClient.close();
     final Properties adminProperties = new Properties();
     adminProperties.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
     AdminClient adminClient = AdminClient.create(adminProperties);
@@ -130,8 +125,6 @@ class KafkaInboundTransport extends InboundTransportBase implements Runnable {
     {
       { put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers); }
       { put("group.id", groupId); }
-//      { put("zookeeper.session.timeout.ms", "400"); }
-//      { put("zookeeper.sync.time.ms", "200"); }
       { put("auto.commit.interval.ms", "1000"); }
     };
   }

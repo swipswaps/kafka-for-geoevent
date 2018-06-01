@@ -5,7 +5,7 @@
 	<adapter uri="com.esri.ges.adapter.inbound/Text/10.6.0"/>
 	<properties>
 		<shown>
-                        <connector accessType="editable" label="Publish Text to Apache Kafka" name="new-kafka-text-out" type="outbound">
+			<property default="localhost:9092" label="Bootstrap Servers" name="bootstrapServers" source="transport"/>
 			<property label="Topic Name" name="topic" source="transport"/>
 		</shown>
 		<advanced>
