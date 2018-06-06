@@ -194,7 +194,6 @@ class KafkaInboundTransport extends InboundTransportBase implements Runnable {
   private class KafkaEventConsumer extends KafkaComponentBase {
     private Semaphore connectionLock;
     private final BlockingQueue<byte[]> queue = new LinkedBlockingQueue<byte[]>();
-    private KafkaConsumer<byte[], byte[]> consumer;
     private ExecutorService executor;
 
     KafkaEventConsumer() {
@@ -204,12 +203,11 @@ class KafkaInboundTransport extends InboundTransportBase implements Runnable {
       try
       {
         executor = Executors.newFixedThreadPool(numThreads);
-        int threadNumber = 0;
         for (int i = 0; i < numThreads; i++)
         {
           try
           {
-            executor.execute(new KafkaQueueingConsumer(i, groupId, topic));
+            executor.execute(new KafkaQueueingConsumer(i, topic));
           }
           catch (Throwable th)
           {
@@ -277,11 +275,6 @@ class KafkaInboundTransport extends InboundTransportBase implements Runnable {
     @Override
     public synchronized void disconnect()
     {
-      if (consumer != null)
-      {
-        consumer.close();
-        consumer = null;
-      }
       if (executor != null)
       {
         executor.shutdown();
@@ -302,20 +295,18 @@ class KafkaInboundTransport extends InboundTransportBase implements Runnable {
     private class KafkaQueueingConsumer implements Runnable
     {
       private KafkaConsumer<byte[],byte[]> stream;
-      private String groupId;
       private String topic;
       private int threadNumber;
 
-      KafkaQueueingConsumer(int threadNumber, String groupId, String topic) {
+      KafkaQueueingConsumer(int threadNumber, String topic) {
         this.stream = new KafkaConsumer<>(consumerConfig);
-        this.groupId = groupId;
         this.topic = topic;
         this.threadNumber = threadNumber;
       }
 
       public void run() {
         LOGGER.info("Starting Kafka consuming thread #" + threadNumber);
-        consumer.subscribe(Collections.singletonList(topic));
+        stream.subscribe(Collections.singletonList(topic));
         while (getStatusDetails().isEmpty())
         {
           if (!isConnected())
