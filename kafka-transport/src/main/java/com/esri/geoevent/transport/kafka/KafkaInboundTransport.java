@@ -39,6 +39,7 @@ import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 
@@ -320,7 +321,8 @@ class KafkaInboundTransport extends InboundTransportBase implements Runnable {
               ; // ignored
             }
           }
-          for (ConsumerRecord<byte[], byte[]> it: stream.poll(Long.MAX_VALUE))
+          ConsumerRecords<byte[], byte[]> consumerRecords = stream.poll(Long.MAX_VALUE);
+          for (ConsumerRecord<byte[], byte[]> it: consumerRecords)
           {
             try
             {
