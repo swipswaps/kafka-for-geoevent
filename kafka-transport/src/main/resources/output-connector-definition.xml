@@ -1,4 +1,4 @@
-<connectorDefinition accessType="editable" label="Publish Text to Apache Kafka" name="new-kafka-text-out" type="outbound">
+<connectorDefinition accessType="editable" label="Publish Text to Apache Kafka (using Bootstrap servers)" name="new-kafka-text-out" type="outbound">
 	<defaultName>new-kafka-text-out</defaultName>
 	<description>Publishes GeoEvents as text to Apache Kafka.</description>
 	<adapter uri="com.esri.ges.adapter.outbound/Text/10.6.0"/>
