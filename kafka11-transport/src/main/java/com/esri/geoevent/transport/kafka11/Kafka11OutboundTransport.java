@@ -22,7 +22,7 @@
   email: contracts@esri.com
 */
 
-package com.esri.geoevent.transport.kafka;
+package com.esri.geoevent.transport.kafka11;
 
 import com.esri.ges.core.component.ComponentException;
 import com.esri.ges.core.component.RunningException;
@@ -37,27 +37,21 @@ import com.esri.ges.transport.GeoEventAwareTransport;
 import com.esri.ges.transport.OutboundTransportBase;
 import com.esri.ges.transport.TransportDefinition;
 import com.esri.ges.util.Converter;
-import kafka.admin.AdminUtils;
-import kafka.admin.RackAwareMode;
-import kafka.utils.ZKStringSerializer$;
-import kafka.utils.ZkUtils;
-import org.I0Itec.zkclient.ZkClient;
-import org.I0Itec.zkclient.ZkConnection;
-import org.apache.kafka.clients.producer.*;
-
 import java.nio.ByteBuffer;
-import java.util.Properties;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
 
-class KafkaOutboundTransport extends OutboundTransportBase implements GeoEventAwareTransport {
-  private static final BundleLogger LOGGER	= BundleLoggerFactory.getLogger(KafkaOutboundTransport.class);
-  private KafkaEventProducer producer;
-  private String zkConnect = "localhost:2181";
+class Kafka11OutboundTransport extends OutboundTransportBase implements GeoEventAwareTransport {
+  private static final BundleLogger LOGGER =
+      BundleLoggerFactory.getLogger(Kafka11OutboundTransport.class);
+  private Kafka11EventProducer producer;
   private String bootstrap = "localhost:9092";
   private String topic;
   private int partitions;
   private int replicas;
 
-  KafkaOutboundTransport(TransportDefinition definition) throws ComponentException {
+  Kafka11OutboundTransport(TransportDefinition definition) throws ComponentException {
     super(definition);
   }
 
@@ -69,23 +63,20 @@ class KafkaOutboundTransport extends OutboundTransportBase implements GeoEventAw
   @Override
   public void receive(ByteBuffer byteBuffer, String channelId, GeoEvent geoEvent) {
     try {
-      if (geoEvent != null)
-      {
-        if (producer == null)
-          producer = new KafkaEventProducer(new EventDestination(topic), bootstrap);
+      if (geoEvent != null) {
+        if (producer == null) {
+          producer = new Kafka11EventProducer(new EventDestination(topic), bootstrap);
+        }
         producer.send(byteBuffer, geoEvent.hashCode());
       }
-    }
-    catch (MessagingException e)
-    {
-      ;
+    } catch (MessagingException e) {
+      e.printStackTrace();
     }
   }
 
   @SuppressWarnings("incomplete-switch")
   public synchronized void start() throws RunningException {
-    switch (getRunningState())
-    {
+    switch (getRunningState()) {
       case STOPPING:
       case STOPPED:
       case ERROR:
@@ -96,15 +87,15 @@ class KafkaOutboundTransport extends OutboundTransportBase implements GeoEventAw
 
   @Override
   public synchronized void stop() {
-    if (!RunningState.STOPPED.equals(getRunningState()))
+    if (!RunningState.STOPPED.equals(getRunningState())) {
       disconnect("");
+    }
   }
 
   @Override
   public void afterPropertiesSet() {
     super.afterPropertiesSet();
     shutdownProducer();
-    zkConnect = getProperty("zkConnect").getValueAsString();
     bootstrap = getProperty("bootstrap").getValueAsString();
     topic = getProperty("topic").getValueAsString();
     partitions = Converter.convertToInteger(getProperty("partitions").getValueAsString(), 1);
@@ -114,33 +105,33 @@ class KafkaOutboundTransport extends OutboundTransportBase implements GeoEventAw
   @Override
   public void validate() throws ValidationException {
     super.validate();
-    if (zkConnect == null || zkConnect.isEmpty())
-      throw new ValidationException(LOGGER.translate("ZKCONNECT_VALIDATE_ERROR"));
-    if (bootstrap == null || bootstrap.isEmpty())
+    if (bootstrap == null || bootstrap.isEmpty()) {
       throw new ValidationException(LOGGER.translate("BOOTSTRAP_VALIDATE_ERROR"));
-    if (topic == null || topic.isEmpty())
+    }
+    if (topic == null || topic.isEmpty()) {
       throw new ValidationException(LOGGER.translate("TOPIC_VALIDATE_ERROR"));
-    ZkClient zkClient = new ZkClient(zkConnect, 10000, 8000, ZKStringSerializer$.MODULE$);
-    // Security for Kafka was added in Kafka 0.9.0.0 -> isSecureKafkaCluster = false
-    ZkUtils zkUtils = new ZkUtils(zkClient, new ZkConnection(zkConnect), false);
-    if (AdminUtils.topicExists(zkUtils, topic))
-      zkClient.deleteRecursive(ZkUtils.getTopicPath(topic));
-
-    ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-    try
-    {
-
-      Thread.currentThread().setContextClassLoader(null);
-      AdminUtils.createTopic(zkUtils, topic, partitions, replicas, new Properties(), RackAwareMode.Disabled$.MODULE$);
     }
-    catch (Throwable th) {
-      LOGGER.error(th.getMessage(), th);
-      throw new ValidationException(th.getMessage());
-    }
-    finally {
-      Thread.currentThread().setContextClassLoader(classLoader);
-    }
-    zkClient.close();
+    //TODO replace by removing and creating topic
+    //ZkClient zkClient = new ZkClient(zkConnect, 10000, 8000, ZKStringSerializer$.MODULE$);
+    //// Security for Kafka was added in Kafka 0.9.0.0 -> isSecureKafkaCluster = false
+    //ZkUtils zkUtils = new ZkUtils(zkClient, new ZkConnection(zkConnect), false);
+    //if (AdminUtils.topicExists(zkUtils, topic)) {
+    //  zkClient.deleteRecursive(ZkUtils.getTopicPath(topic));
+    //}
+    //
+    //ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+    //try {
+    //
+    //  Thread.currentThread().setContextClassLoader(null);
+    //  AdminUtils.createTopic(zkUtils, topic, partitions, replicas, new Properties(),
+    //      RackAwareMode.Disabled$.MODULE$);
+    //} catch (Throwable th) {
+    //  LOGGER.error(th.getMessage(), th);
+    //  throw new ValidationException(th.getMessage());
+    //} finally {
+    //  Thread.currentThread().setContextClassLoader(classLoader);
+    //}
+    //zkClient.close();
   }
 
   private synchronized void disconnect(String reason) {
@@ -170,16 +161,18 @@ class KafkaOutboundTransport extends OutboundTransportBase implements GeoEventAw
     super.shutdown();
   }
 
-  private class KafkaEventProducer extends KafkaComponentBase {
+  private class Kafka11EventProducer extends Kafka11ComponentBase {
     private KafkaProducer<byte[], byte[]> producer;
 
-    KafkaEventProducer(EventDestination destination, String bootstrap) {
+    Kafka11EventProducer(EventDestination destination, String bootstrap) {
       super(destination);
       // http://kafka.apache.org/documentation.html#producerconfigs
       props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrap);
-      props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.ByteArraySerializer");
-      props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.ByteArraySerializer");
-      props.put(ProducerConfig.CLIENT_ID_CONFIG, "kafka-for-geoevent");
+      props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
+          "org.apache.kafka.common.serialization.ByteArraySerializer");
+      props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
+          "org.apache.kafka.common.serialization.ByteArraySerializer");
+      props.put(ProducerConfig.CLIENT_ID_CONFIG, "kafka11-for-geoevent");
       // props.put("partitioner.class", "kafka.producer.DefaultPartitioner");
       // props.put(ProducerConfig.ACKS_CONFIG, "0");
       // props.put(ProducerConfig.RECONNECT_BACKOFF_MS_CONFIG, "0");
@@ -187,8 +180,7 @@ class KafkaOutboundTransport extends OutboundTransportBase implements GeoEventAw
       // props.put(ProducerConfig.RETRIES_CONFIG, "0");
       try {
         setup();
-      }
-      catch (MessagingException e) {
+      } catch (MessagingException e) {
         setDisconnected(e);
       }
     }
@@ -196,30 +188,30 @@ class KafkaOutboundTransport extends OutboundTransportBase implements GeoEventAw
     @Override
     public synchronized void init() throws MessagingException {
       if (producer == null) {
-        Thread.currentThread().setContextClassLoader(null); // see http://stackoverflow.com/questions/34734907/karaf-kafka-osgi-bundle-producer-issue for details
-        producer = new KafkaProducer<byte[], byte[]>(props);
+        Thread.currentThread()
+            .setContextClassLoader(
+                null); // see http://stackoverflow.com/questions/34734907/karaf-kafka-osgi-bundle-producer-issue for details
+        producer = new KafkaProducer<>(props);
       }
     }
 
     public void send(final ByteBuffer bb, int h) throws MessagingException {
       // wait to send messages if we are not connected
-      if (isConnected())
-      {
+      if (isConnected()) {
         byte[] key = new byte[4];
         key[3] = (byte) (h & 0xFF);
         key[2] = (byte) ((h >> 8) & 0xFF);
         key[1] = (byte) ((h >> 16) & 0xFF);
         key[0] = (byte) ((h >> 24) & 0xFF);
-        ProducerRecord<byte[], byte[]> record = new ProducerRecord<byte[], byte[]>(destination.getName(), key, bb.array());
-        producer.send(record, new Callback() {
-          @Override
-          public void onCompletion(RecordMetadata metadata, Exception e) {
-            if (e != null) {
-              String errorMsg = LOGGER.translate("KAFKA_SEND_FAILURE_ERROR", destination.getName(), e.getMessage());
-              LOGGER.error(errorMsg);
-            }
-            else
-              LOGGER.debug("The offset of the record we just sent is: " + metadata.offset());
+        final ProducerRecord<byte[], byte[]> record =
+            new ProducerRecord<>(destination.getName(), key, bb.array());
+        producer.send(record, (metadata, e) -> {
+          if (e != null) {
+            final String errorMsg = LOGGER.translate("KAFKA_SEND_FAILURE_ERROR", destination.getName(),
+                e.getMessage());
+            LOGGER.error(errorMsg);
+          } else {
+            LOGGER.debug("The offset of the record we just sent is: " + metadata.offset());
           }
         });
       }

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<blueprint xmlns="http://www.osgi.org/xmlns/blueprint/v1.0.0">
+	<bean id="kafka11InboundTransportServiceBean" class="com.esri.geoevent.transport.kafka11.Kafka11InboundTransportService" activation="eager">
+		<property name="bundleContext" ref="blueprintBundleContext"/>
+	</bean>
+	<service id="kafka11InboundTransportService" ref="kafka11InboundTransportServiceBean" interface="com.esri.ges.transport.TransportService"/>
+
+	<bean id="kafka11OutboundTransportServiceBean" class="com.esri.geoevent.transport.kafka11.Kafka11OutboundTransportService" activation="eager">
+		<property name="bundleContext" ref="blueprintBundleContext"/>
+	</bean>
+	<service id="kafka11OutboundTransportService" ref="kafka11OutboundTransportServiceBean" interface="com.esri.ges.transport.TransportService"/>
+</blueprint>

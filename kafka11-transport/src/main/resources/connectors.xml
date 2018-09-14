@@ -6,10 +6,10 @@
     <geoEventDefinitions/>
     <tags/>
     <connectors>
-        <connector accessType="editable" label="Publish Text to Apache Kafka" name="kafka-text-out" type="outbound">
+        <connector accessType="editable" label="Publish Text to Apache Kafka11" name="kafka11-text-out" type="outbound">
             <adapter uri="com.esri.ges.adapter.outbound/Text/10.6.0"/>
-            <defaultName>kafka-text-out</defaultName>
-            <description>Publishes GeoEvents as text to Apache Kafka.</description>
+            <defaultName>kafka11-text-out</defaultName>
+            <description>Publishes GeoEvents as text to Apache Kafka11.</description>
             <properties>
                 <advanced>
                     <property default="1" label="Number Of Partitions" name="partitions" source="transport"/>
@@ -23,17 +23,16 @@
                 </advanced>
                 <hidden/>
                 <shown>
-                    <property default="localhost:2181" label="Zookeeper Connection String" name="zkConnect" source="transport"/>
                     <property default="localhost:9092" label="Bootstrap Servers" name="bootstrap" source="transport"/>
                     <property label="Topic Name" name="topic" source="transport"/>
                 </shown>
             </properties>
-            <transport uri="com.esri.geoevent.transport.outbound/Kafka/10.6.0"/>
+            <transport uri="com.esri.geoevent.transport.outbound/Kafka11/10.6.0"/>
         </connector>
-        <connector accessType="editable" label="Receive Text from Apache Kafka" name="kafka-text-in" type="inbound">
+        <connector accessType="editable" label="Receive Text from Apache Kafka 1.1" name="kafka11-text-in" type="inbound">
             <adapter uri="com.esri.ges.adapter.inbound/Text/10.6.0"/>
-            <defaultName>kafka-text-in</defaultName>
-            <description>Receives text from Apache Kafka and converts it to GeoEvents.</description>
+            <defaultName>kafka11-text-in</defaultName>
+            <description>Receives text from Apache Kafka11 and converts it to GeoEvents.</description>
             <properties>
                 <advanced>
                     <property default="1" label="Number Of Threads" name="numThreads" source="transport"/>
@@ -55,12 +54,12 @@
                 </advanced>
                 <hidden/>
                 <shown>
-                    <property default="localhost:2181" label="Zookeeper Connection String" name="zkConnect" source="transport"/>
+                    <property default="localhost:9092" label="Bootstrap Servers" name="bootstrap" source="transport"/>
                     <property label="Topic Name" name="topic" source="transport"/>
                     <property label="Consumer Group Id" name="groupId" source="transport"/>
                 </shown>
             </properties>
-            <transport uri="com.esri.geoevent.transport.inbound/Kafka/10.6.0"/>
+            <transport uri="com.esri.geoevent.transport.inbound/Kafka11/10.6.0"/>
         </connector>
     </connectors>
 </template>

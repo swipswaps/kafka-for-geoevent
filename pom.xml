@@ -2,19 +2,19 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.esri.geoevent.parent</groupId>
-	<artifactId>kafka</artifactId>
+	<artifactId>kafka11</artifactId>
 	<version>10.6.0</version>
 	<packaging>pom</packaging>
-	<name>Esri :: GeoEvent :: Kafka</name>
+	<name>Esri :: GeoEvent :: Kafka11</name>
 	<url>http://www.esri.com</url>
 	<properties>
 		<contact.address>geoevent@esri.com</contact.address>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<maven.bundle.plugin.version>2.3.6</maven.bundle.plugin.version>
-		<kafka.version>0.10.1.1</kafka.version>
+		<maven.bundle.plugin.version>2.4.0</maven.bundle.plugin.version>
+		<kafka.version>1.1.0</kafka.version>
 	</properties>
 	<modules>
-		<module>kafka-transport</module>
+		<module>kafka11-transport</module>
 	</modules>
 	<dependencyManagement>
 		<dependencies>
@@ -61,21 +61,6 @@
 			<artifactId>kafka-clients</artifactId>
 			<version>${kafka.version}</version>
 		</dependency>
-		<dependency>
-			<groupId>org.apache.kafka</groupId>
-			<artifactId>kafka_2.11</artifactId>
-			<version>${kafka.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>com.101tec</groupId>
-			<artifactId>zkclient</artifactId>
-			<version>0.8</version>
-		</dependency>
-		<dependency>
-			<groupId>org.scala-lang.modules</groupId>
-			<artifactId>scala-parser-combinators_2.11</artifactId>
-			<version>1.0.5</version>
-		</dependency>
 	</dependencies>
 	<build>
 		<pluginManagement>
@@ -94,9 +79,6 @@
 								lz4;scope=compile|runtime;inline=true,
 								snappy-java;scope=compile|runtime;inline=true,
 								kafka-clients;scope=compile|runtime;inline=true,
-								kafka_2.11;scope=compile|runtime;inline=true,
-								zkclient;scope=compile|runtime;inline=true,
-								scala-parser-combinators_2.11;scope=compile|runtime;inline=true
 							</Embed-Dependency>
 						</instructions>
 					</configuration>

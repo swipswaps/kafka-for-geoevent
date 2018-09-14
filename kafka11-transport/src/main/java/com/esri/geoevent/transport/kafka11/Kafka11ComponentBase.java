@@ -22,21 +22,20 @@
   email: contracts@esri.com
 */
 
-package com.esri.geoevent.transport.kafka;
+package com.esri.geoevent.transport.kafka11;
 
 import com.esri.ges.messaging.*;
 
 import java.util.Observable;
 import java.util.Properties;
 
-abstract class KafkaComponentBase extends Observable implements EventDestinationAwareComponent {
+abstract class Kafka11ComponentBase extends Observable implements EventDestinationAwareComponent {
   EventDestination destination;
   private volatile boolean connected = false;
   private String details = "";
-  private int timeout = 10000;
   Properties props = new Properties();
 
-  KafkaComponentBase(EventDestination destination) {
+  Kafka11ComponentBase(EventDestination destination) {
     this.destination = destination;
   }
 
@@ -57,8 +56,9 @@ abstract class KafkaComponentBase extends Observable implements EventDestination
 
   protected void setDisconnected(Throwable th) {
     connected = false;
-    if (th != null)
+    if (th != null) {
       details = th.getMessage();
+    }
   }
 
   @Override
@@ -75,7 +75,6 @@ abstract class KafkaComponentBase extends Observable implements EventDestination
 
   @Override
   public void update(Observable o, Object arg) {
-    ;
   }
 
   @Override

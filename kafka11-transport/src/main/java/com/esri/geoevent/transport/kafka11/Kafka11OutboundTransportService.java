@@ -22,20 +22,19 @@
   email: contracts@esri.com
 */
 
-package com.esri.geoevent.transport.kafka;
+package com.esri.geoevent.transport.kafka11;
 
 import com.esri.ges.core.component.ComponentException;
 import com.esri.ges.transport.Transport;
 import com.esri.ges.transport.TransportServiceBase;
 
-public class KafkaInboundTransportService extends TransportServiceBase
-{
-  public KafkaInboundTransportService() {
-    definition = new KafkaInboundTransportDefinition();
+public class Kafka11OutboundTransportService extends TransportServiceBase {
+  public Kafka11OutboundTransportService() {
+    definition = new Kafka11OutboundTransportDefinition();
   }
 
   @Override
   public Transport createTransport() throws ComponentException {
-    return new KafkaInboundTransport(definition);
+    return new Kafka11OutboundTransport(definition);
   }
 }

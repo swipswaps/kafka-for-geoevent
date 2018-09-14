@@ -3,12 +3,12 @@
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
 		<groupId>com.esri.geoevent.parent</groupId>
-		<artifactId>kafka</artifactId>
+		<artifactId>kafka11</artifactId>
 		<version>10.6.0</version>
 	</parent>
 	<groupId>com.esri.geoevent.transport</groupId>
-	<artifactId>kafka-transport</artifactId>
-	<name>Esri :: GeoEvent :: Transport :: Kafka</name>
+	<artifactId>kafka11-transport</artifactId>
+	<name>Esri :: GeoEvent :: Transport :: Kafka11</name>
 	<packaging>bundle</packaging>
 	<dependencies>
 		<dependency>
@@ -38,8 +38,7 @@
 						<Bundle-Version>${project.version}</Bundle-Version>
 						<AGES-Domain>com.esri.geoevent.transport</AGES-Domain>
 						<Export-Package/>
-						<Import-Package>!kafka.*,*</Import-Package>
-						<Private-Package>com.esri.geoevent.transport.kafka</Private-Package>
+						<Private-Package>com.esri.geoevent.transport.kafka11</Private-Package>
 					</instructions>
 				</configuration>
 			</plugin>
