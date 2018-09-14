@@ -40,11 +40,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -193,8 +188,6 @@ class Kafka11InboundTransport extends InboundTransportBase implements Runnable {
   }
 
   private class Kafka11EventConsumer extends Kafka11ComponentBase {
-    //private final BlockingQueue<byte[]> queue = new LinkedBlockingQueue<>();
-    //private ExecutorService executor;
     private final KafkaConsumer<byte[], byte[]> kafkaConsumer;
 
     Kafka11EventConsumer() {
@@ -210,23 +203,6 @@ class Kafka11InboundTransport extends InboundTransportBase implements Runnable {
           .setContextClassLoader(null); // see http://stackoverflow.com/questions/34734907/karaf-kafka-osgi-bundle-producer-issue for details
       kafkaConsumer = new KafkaConsumer<>(props);
       kafkaConsumer.subscribe(Collections.singletonList(topic));
-      //try {
-      //  //executor = Executors.newFixedThreadPool(numThreads);
-      //  //for (int i = 0; i < numThreads; i++) {
-      //  //  try {
-      //  //    //KafkaQueueingConsumer consumer = new KafkaQueueingConsumer(i);
-      //  //    //executor.submit(consumer);
-      //  //  } catch (Throwable th) {
-      //  //    th.printStackTrace();
-      //  //    System.out.println(th.getMessage());
-      //  //    setDisconnected(th);
-      //  //  }
-      //  //}
-      ////} catch (Throwable th) {
-      ////  th.printStackTrace();
-      ////  setDisconnected(th);
-      ////  setErrorMessage(th.getMessage());
-      //}
     }
 
     public synchronized void init() throws MessagingException {
@@ -255,53 +231,8 @@ class Kafka11InboundTransport extends InboundTransportBase implements Runnable {
 
     @Override
     public synchronized void disconnect() {
-      //if (executor != null) {
-      //  executor.shutdown();
-      //  try {
-      //    if (!executor.awaitTermination(5000, TimeUnit.MILLISECONDS)) {
-      //      LOGGER.info(
-      //          "Timed out waiting for Kafka event consumer threads to shut down, exiting uncleanly");
-      //    }
-      //  } catch (InterruptedException e) {
-      //    LOGGER.error(
-      //        "Interrupted during Kafka event consumer threads shutdown, exiting uncleanly");
-      //  }
-      //  executor = null;
-      //}
       kafkaConsumer.close();
       super.disconnect();
     }
-
-    //private class KafkaQueueingConsumer implements Runnable {
-    //  //private KafkaStream<byte[], byte[]> stream;
-    //  private final KafkaConsumer<byte[], byte[]> kafkaConsumer;
-    //  private final int threadNumber;
-    //
-    //  KafkaQueueingConsumer(int threadNumber) {
-    //    //this.stream = stream;
-    //    this.threadNumber = threadNumber;
-    //    Thread.currentThread()
-    //        .setContextClassLoader(
-    //            null); // see http://stackoverflow.com/questions/34734907/karaf-kafka-osgi-bundle-producer-issue for details
-    //    kafkaConsumer = new KafkaConsumer<>(props);
-    //  }
-    //
-    //  public void run() {
-    //    LOGGER.info("Starting Kafka consuming thread #" + threadNumber);
-    //    kafkaConsumer.subscribe(Collections.singletonList(topic));
-    //    while (getStatusDetails().isEmpty()) {
-    //      ConsumerRecords<byte[], byte[]> consumerRecords = kafkaConsumer.poll(Long.MAX_VALUE);
-    //      LOGGER.info("Consumer received " + consumerRecords.count() + " records");
-    //      for (ConsumerRecord<byte[], byte[]> consumerRecord : consumerRecords) {
-    //        try {
-    //          //queue.offer(consumerRecord.value(), 100, TimeUnit.MILLISECONDS);
-    //        } catch (InterruptedException ex) {
-    //          ex.printStackTrace();
-    //        }
-    //      }
-    //    }
-    //    LOGGER.info("Shutting down Kafka consuming thread #" + threadNumber);
-    //  }
-    //}
   }
 }
