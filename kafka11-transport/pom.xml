@@ -38,6 +38,7 @@
 						<Bundle-Version>${project.version}</Bundle-Version>
 						<AGES-Domain>com.esri.geoevent.transport</AGES-Domain>
 						<Export-Package/>
+						<Import-Package>*</Import-Package>
 						<Private-Package>com.esri.geoevent.transport.kafka11</Private-Package>
 					</instructions>
 				</configuration>

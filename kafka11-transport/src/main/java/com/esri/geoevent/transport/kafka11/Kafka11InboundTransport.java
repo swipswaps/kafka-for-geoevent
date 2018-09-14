@@ -36,20 +36,26 @@ import com.esri.ges.transport.InboundTransportBase;
 import com.esri.ges.transport.TransportDefinition;
 import com.esri.ges.util.Converter;
 import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 
 class Kafka11InboundTransport extends InboundTransportBase implements Runnable {
   private static final BundleLogger LOGGER =
       BundleLoggerFactory.getLogger(Kafka11InboundTransport.class);
-  private Kafka11EventConsumer consumer;
+  private Kafka11EventConsumer eventConsumer;
+  private String bootstrap = "localhost:9092";
   private int numThreads;
   private String topic;
   private String groupId;
@@ -68,13 +74,16 @@ class Kafka11InboundTransport extends InboundTransportBase implements Runnable {
     setRunningState(RunningState.STARTED);
     while (isRunning()) {
       try {
-        final byte[] bytes = consumer.receive();
-        if (bytes != null && bytes.length > 0) {
-          ByteBuffer bb = ByteBuffer.allocate(bytes.length);
-          bb.put(bytes);
-          bb.flip();
-          byteListener.receive(bb, "");
-          bb.clear();
+        final Collection<byte[]> values = eventConsumer.receive();
+        for (byte[] bytes : values) {
+          if (bytes != null && bytes.length > 0) {
+            LOGGER.info("Message received.");
+            final ByteBuffer bb = ByteBuffer.allocate(bytes.length);
+            bb.put(bytes);
+            bb.flip();
+            byteListener.receive(bb, "");
+            bb.clear();
+          }
         }
       } catch (MessagingException e) {
         LOGGER.error("", e);
@@ -84,15 +93,23 @@ class Kafka11InboundTransport extends InboundTransportBase implements Runnable {
 
   @Override
   public void afterPropertiesSet() {
+    bootstrap = getProperty("bootstrap").getValueAsString();
     numThreads = Converter.convertToInteger(getProperty("numThreads").getValueAsString(), 1);
     topic = getProperty("topic").getValueAsString();
     groupId = getProperty("groupId").getValueAsString();
     super.afterPropertiesSet();
+    LOGGER.info(
+        String.format("Properties: bootstrap=%s numThreads=%s topic=%s groupId=%s", bootstrap,
+            numThreads,
+            topic, groupId));
   }
 
   @Override
   public void validate() throws ValidationException {
     super.validate();
+    if (bootstrap == null || bootstrap.isEmpty()) {
+      throw new ValidationException(LOGGER.translate("BOOTSTRAP_VALIDATE_ERROR"));
+    }
     if (topic.isEmpty()) {
       throw new ValidationException(LOGGER.translate("TOPIC_VALIDATE_ERROR"));
     }
@@ -102,6 +119,7 @@ class Kafka11InboundTransport extends InboundTransportBase implements Runnable {
     if (numThreads < 1) {
       throw new ValidationException(LOGGER.translate("NUM_THREADS_VALIDATE_ERROR"));
     }
+    LOGGER.info("Consumer validated.");
     //TODO validate topic exists
     //ZkClient zkClient = new ZkClient(zkConnect, 10000, 8000, ZKStringSerializer$.MODULE$);
     //// Security for Kafka was added in Kafka 0.9.0.0 -> isSecureKafkaCluster = false
@@ -112,16 +130,6 @@ class Kafka11InboundTransport extends InboundTransportBase implements Runnable {
     //  throw new ValidationException(LOGGER.translate("TOPIC_VALIDATE_ERROR"));
     //}
     // Init Consumer Config
-    Properties props = new Properties() {
-
-      {
-        put("group.id", groupId);
-      }
-
-      {
-        put("auto.commit.interval.ms", "1000");
-      }
-    };
     //TODO expose props
     //consumerConfig = new ConsumerConfig(props);
   }
@@ -143,7 +151,9 @@ class Kafka11InboundTransport extends InboundTransportBase implements Runnable {
   }
 
   private synchronized void disconnect(String reason) {
-    if (!RunningState.STOPPED.equals(getRunningState())) {
+    final RunningState runningState = getRunningState();
+    LOGGER.info("Consumer Disconnecting, current state: " + runningState);
+    if (!RunningState.STOPPED.equals(runningState)) {
       setRunningState(RunningState.STOPPING);
       shutdownConsumer();
       setErrorMessage(reason);
@@ -152,26 +162,28 @@ class Kafka11InboundTransport extends InboundTransportBase implements Runnable {
   }
 
   private synchronized void connect() {
+    LOGGER.info("Consumer connecting.");
     disconnect("");
     setRunningState(RunningState.STARTING);
-    if (consumer == null) {
-      consumer = new Kafka11EventConsumer();
+    if (eventConsumer == null) {
+      eventConsumer = new Kafka11EventConsumer();
     }
-    if (consumer.getStatusDetails().isEmpty()) // no errors reported while instantiating a consumer
+    if (eventConsumer.getStatusDetails()
+        .isEmpty()) // no errors reported while instantiating a consumer
     {
-      consumer.setConnected();
+      eventConsumer.setConnected();
       new Thread(this).start();
     } else {
       setRunningState(RunningState.ERROR);
-      setErrorMessage(consumer.getStatusDetails());
+      setErrorMessage(eventConsumer.getStatusDetails());
     }
   }
 
   private synchronized void shutdownConsumer() {
-    if (consumer != null) {
-      consumer.setDisconnected(null);
-      consumer.shutdown();
-      consumer = null;
+    if (eventConsumer != null) {
+      eventConsumer.setDisconnected(null);
+      eventConsumer.shutdown();
+      eventConsumer = null;
     }
   }
 
@@ -181,77 +193,59 @@ class Kafka11InboundTransport extends InboundTransportBase implements Runnable {
   }
 
   private class Kafka11EventConsumer extends Kafka11ComponentBase {
-    private Semaphore connectionLock;
-    private final BlockingQueue<byte[]> queue = new LinkedBlockingQueue<>();
-    private KafkaConsumer<byte[], byte[]> consumer;
-    private ExecutorService executor;
+    //private final BlockingQueue<byte[]> queue = new LinkedBlockingQueue<>();
+    //private ExecutorService executor;
+    private final KafkaConsumer<byte[], byte[]> kafkaConsumer;
 
     Kafka11EventConsumer() {
       super(new EventDestination(topic));
-      connectionLock = new Semaphore(2);
-      Map<String, Integer> topicCountMap =
-          new HashMap<String, Integer>() {
-            {
-              put(topic, new Integer(numThreads));
-            }
-          };
-      consumer = null;//FIXME Consumer.createJavaConsumerConnector(consumerConfig);
-      try {
-        //TODO implement with KafkaConsumer
-        //Map<String, List<KafkaStream<byte[], byte[]>>> consumerMap =
-        //    consumer.createMessageStreams(topicCountMap);
-        //List<KafkaStream<byte[], byte[]>> streams = consumerMap.get(topic);
-        //executor = Executors.newFixedThreadPool(numThreads);
-        //int threadNumber = 0;
-        //for (final KafkaStream stream : streams) {
-        //  try {
-        //    executor.execute(new KafkaQueueingConsumer(stream, threadNumber++));
-        //  } catch (Throwable th) {
-        //    System.out.println(th.getMessage());
-        //    setDisconnected(th);
-        //  }
-        //}
-      } catch (Throwable th) {
-        setDisconnected(th);
-        setErrorMessage(th.getMessage());
-      }
+      props.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrap);
+      props.setProperty(ConsumerConfig.GROUP_ID_CONFIG, groupId);
+      props.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
+          ByteArrayDeserializer.class.getName());
+      props.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
+          ByteArrayDeserializer.class.getName());
+      props.setProperty(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, String.valueOf(10_000));
+      Thread.currentThread()
+          .setContextClassLoader(null); // see http://stackoverflow.com/questions/34734907/karaf-kafka-osgi-bundle-producer-issue for details
+      kafkaConsumer = new KafkaConsumer<>(props);
+      kafkaConsumer.subscribe(Collections.singletonList(topic));
+      //try {
+      //  //executor = Executors.newFixedThreadPool(numThreads);
+      //  //for (int i = 0; i < numThreads; i++) {
+      //  //  try {
+      //  //    //KafkaQueueingConsumer consumer = new KafkaQueueingConsumer(i);
+      //  //    //executor.submit(consumer);
+      //  //  } catch (Throwable th) {
+      //  //    th.printStackTrace();
+      //  //    System.out.println(th.getMessage());
+      //  //    setDisconnected(th);
+      //  //  }
+      //  //}
+      ////} catch (Throwable th) {
+      ////  th.printStackTrace();
+      ////  setDisconnected(th);
+      ////  setErrorMessage(th.getMessage());
+      //}
     }
 
     public synchronized void init() throws MessagingException {
     }
 
-    byte[] receive() throws MessagingException {
+    Collection<byte[]> receive() throws MessagingException {
       // wait to receive messages if we are not connected
-      if (!isConnected()) {
-        try {
-          connectionLock.acquire(); // blocks execution until a connection has been recovered
-        } catch (InterruptedException error) {
-          ; // ignored
-        }
-      }
-      byte[] bytes = null;
+      List<byte[]> values = new ArrayList<>();
       try {
-        bytes = queue.poll(100, TimeUnit.MILLISECONDS);
+        ConsumerRecords<byte[], byte[]> consumerRecords = kafkaConsumer.poll(Long.MAX_VALUE);
+        LOGGER.info("Consumer received " + consumerRecords.count() + " records");
+        for (ConsumerRecord<byte[], byte[]> consumerRecord : consumerRecords) {
+          values.add(consumerRecord.value());
+        }
       } catch (Exception e) {
-        ; // ignore
+        // ignore
+        e.printStackTrace();
       }
-      return bytes;
-    }
-
-    @Override
-    protected void setConnected() {
-      if (connectionLock.availablePermits() == 0) {
-        connectionLock.release();
-      }
-      super.setConnected();
-    }
-
-    @Override
-    protected void setDisconnected(Throwable th) {
-      if (connectionLock.availablePermits() == 2) {
-        connectionLock.drainPermits();
-      }
-      super.setDisconnected(th);
+      return values;
     }
 
     public synchronized void shutdown() {
@@ -261,56 +255,53 @@ class Kafka11InboundTransport extends InboundTransportBase implements Runnable {
 
     @Override
     public synchronized void disconnect() {
-      if (consumer != null) {
-        consumer.close();
-        consumer = null;
-      }
-      if (executor != null) {
-        executor.shutdown();
-        try {
-          if (!executor.awaitTermination(5000, TimeUnit.MILLISECONDS)) {
-            LOGGER.info(
-                "Timed out waiting for Kafka event consumer threads to shut down, exiting uncleanly");
-          }
-        } catch (InterruptedException e) {
-          LOGGER.error(
-              "Interrupted during Kafka event consumer threads shutdown, exiting uncleanly");
-        }
-        executor = null;
-      }
+      //if (executor != null) {
+      //  executor.shutdown();
+      //  try {
+      //    if (!executor.awaitTermination(5000, TimeUnit.MILLISECONDS)) {
+      //      LOGGER.info(
+      //          "Timed out waiting for Kafka event consumer threads to shut down, exiting uncleanly");
+      //    }
+      //  } catch (InterruptedException e) {
+      //    LOGGER.error(
+      //        "Interrupted during Kafka event consumer threads shutdown, exiting uncleanly");
+      //  }
+      //  executor = null;
+      //}
+      kafkaConsumer.close();
       super.disconnect();
     }
 
-    private class KafkaQueueingConsumer implements Runnable {
-      //private KafkaStream<byte[], byte[]> stream;
-      private int threadNumber;
-
-      KafkaQueueingConsumer(int threadNumber) {
-        //this.stream = stream;
-        this.threadNumber = threadNumber;
-      }
-
-      public void run() {
-        LOGGER.info("Starting Kafka consuming thread #" + threadNumber);
-        while (getStatusDetails().isEmpty()) {
-          if (!isConnected()) {
-            try {
-              connectionLock.acquire(); // blocks execution until a connection has been recovered
-            } catch (InterruptedException error) {
-              ; // ignored
-            }
-          }
-          //TODO implement with KafkaConnector
-          //for (ConsumerIterator<byte[], byte[]> it = stream.iterator(); it.hasNext(); ) {
-          //  try {
-          //    queue.offer(it.next().message(), 100, TimeUnit.MILLISECONDS);
-          //  } catch (InterruptedException ex) {
-          //    ; //ignore
-          //  }
-          //}
-        }
-        LOGGER.info("Shutting down Kafka consuming thread #" + threadNumber);
-      }
-    }
+    //private class KafkaQueueingConsumer implements Runnable {
+    //  //private KafkaStream<byte[], byte[]> stream;
+    //  private final KafkaConsumer<byte[], byte[]> kafkaConsumer;
+    //  private final int threadNumber;
+    //
+    //  KafkaQueueingConsumer(int threadNumber) {
+    //    //this.stream = stream;
+    //    this.threadNumber = threadNumber;
+    //    Thread.currentThread()
+    //        .setContextClassLoader(
+    //            null); // see http://stackoverflow.com/questions/34734907/karaf-kafka-osgi-bundle-producer-issue for details
+    //    kafkaConsumer = new KafkaConsumer<>(props);
+    //  }
+    //
+    //  public void run() {
+    //    LOGGER.info("Starting Kafka consuming thread #" + threadNumber);
+    //    kafkaConsumer.subscribe(Collections.singletonList(topic));
+    //    while (getStatusDetails().isEmpty()) {
+    //      ConsumerRecords<byte[], byte[]> consumerRecords = kafkaConsumer.poll(Long.MAX_VALUE);
+    //      LOGGER.info("Consumer received " + consumerRecords.count() + " records");
+    //      for (ConsumerRecord<byte[], byte[]> consumerRecord : consumerRecords) {
+    //        try {
+    //          //queue.offer(consumerRecord.value(), 100, TimeUnit.MILLISECONDS);
+    //        } catch (InterruptedException ex) {
+    //          ex.printStackTrace();
+    //        }
+    //      }
+    //    }
+    //    LOGGER.info("Shutting down Kafka consuming thread #" + threadNumber);
+    //  }
+    //}
   }
 }

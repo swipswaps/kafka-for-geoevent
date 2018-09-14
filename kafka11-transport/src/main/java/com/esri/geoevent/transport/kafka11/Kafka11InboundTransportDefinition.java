@@ -62,7 +62,7 @@ public class Kafka11InboundTransportDefinition extends TransportDefinitionBase {
 
   @Override
   public String getName() {
-    return "Kafka";
+    return "Kafka1.1";
   }
 
   @Override

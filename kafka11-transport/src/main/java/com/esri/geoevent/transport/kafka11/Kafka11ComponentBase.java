@@ -49,12 +49,12 @@ abstract class Kafka11ComponentBase extends Observable implements EventDestinati
     return connected;
   }
 
-  protected void setConnected() {
+  void setConnected() {
     connected = true;
     details = "";
   }
 
-  protected void setDisconnected(Throwable th) {
+  void setDisconnected(Throwable th) {
     connected = false;
     if (th != null) {
       details = th.getMessage();

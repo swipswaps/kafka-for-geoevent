@@ -41,6 +41,7 @@ import java.nio.ByteBuffer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.serialization.ByteArraySerializer;
 
 class Kafka11OutboundTransport extends OutboundTransportBase implements GeoEventAwareTransport {
   private static final BundleLogger LOGGER =
@@ -167,12 +168,12 @@ class Kafka11OutboundTransport extends OutboundTransportBase implements GeoEvent
     Kafka11EventProducer(EventDestination destination, String bootstrap) {
       super(destination);
       // http://kafka.apache.org/documentation.html#producerconfigs
-      props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrap);
-      props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
-          "org.apache.kafka.common.serialization.ByteArraySerializer");
-      props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
-          "org.apache.kafka.common.serialization.ByteArraySerializer");
-      props.put(ProducerConfig.CLIENT_ID_CONFIG, "kafka11-for-geoevent");
+      props.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrap);
+      props.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
+          ByteArraySerializer.class.getName());
+      props.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
+          ByteArraySerializer.class.getName());
+      props.setProperty(ProducerConfig.CLIENT_ID_CONFIG, "kafka11-for-geoevent");
       // props.put("partitioner.class", "kafka.producer.DefaultPartitioner");
       // props.put(ProducerConfig.ACKS_CONFIG, "0");
       // props.put(ProducerConfig.RECONNECT_BACKOFF_MS_CONFIG, "0");
