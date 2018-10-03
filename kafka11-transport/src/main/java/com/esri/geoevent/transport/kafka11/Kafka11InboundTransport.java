@@ -25,7 +25,6 @@
 package com.esri.geoevent.transport.kafka11;
 
 import com.esri.ges.core.component.ComponentException;
-import com.esri.ges.core.component.RunningException;
 import com.esri.ges.core.component.RunningState;
 import com.esri.ges.core.validation.ValidationException;
 import com.esri.ges.framework.i18n.BundleLogger;
@@ -72,16 +71,17 @@ class Kafka11InboundTransport extends InboundTransportBase implements Runnable {
         final Collection<byte[]> values = eventConsumer.receive();
         for (byte[] bytes : values) {
           if (bytes != null && bytes.length > 0) {
-            LOGGER.info("Message received.");
+            LOGGER.debug("Message received");
             final ByteBuffer bb = ByteBuffer.allocate(bytes.length);
             bb.put(bytes);
             bb.flip();
-            byteListener.receive(bb, "");
+            byteListener.receive(bb, "1");
             bb.clear();
+            LOGGER.debug("Message sent");
           }
         }
       } catch (MessagingException e) {
-        LOGGER.error("", e);
+        LOGGER.error("Error sending message", e);
       }
     }
   }
@@ -130,7 +130,7 @@ class Kafka11InboundTransport extends InboundTransportBase implements Runnable {
   }
 
   @Override
-  public synchronized void start() throws RunningException {
+  public synchronized void start() {
     switch (getRunningState()) {
       case STOPPING:
       case STOPPED:
